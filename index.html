@@ -1,0 +1,138 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 1</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    var config = { // configures the game
+        type: Phaser.AUTO, // Auto will attempt to use WEBGL, but will fall back to canvas
+        width: 800,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 300 },
+            debug: false
+          }
+           
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    var game = new Phaser.Game(config);
+
+    function preload () // loads our assets. Phaser will automatically look for this function
+    {
+      this.load.image('sky', 'assets/sky.png');
+      this.load.image('ground', 'assets/platform.png');
+      this.load.image('star', 'assets/star.png');
+      this.load.image('bomb', 'assets/bomb.png');
+      this.load.spritesheet('dude',
+        'assets/dude.png',
+        { frameWidth: 32, frameHeight: 48 }
+      );
+    }
+
+    function create ()
+    {
+      this.add.image(400, 300, 'sky'); // x,y,key. Objects are positioned from their center
+
+      platforms = this.physics.add.staticGroup(); // in order to use physics, they must be configured in the config obj
+      // arcade physics has two types of bodies: dynamic and static. We're creating a static object.
+
+      platforms.create(400,568, 'ground').setScale(2).refreshBody();
+      // groups like platforms can create their own children with functions like #create
+      // setScale scales the body
+      // and since we have made a change to a static body, we call refreshBody to make the change known
+
+      platforms.create(600, 400, 'ground');
+      platforms.create(50, 250, 'ground');
+      platforms.create(750, 220, 'ground');
+
+      player = this.physics.add.sprite(100, 450, 'dude');
+
+      player.setBounce(0.2); // this object will bounce after jumping
+      player.setCollideWorldBounds(true); // this object cannot leave the game bounds
+
+      player.body.setGravityY(300) // the body property references the sprite's physical body
+      // we can change the way gravity acts on the sprite -- the higher this number, the heavier it will feel
+
+      this.physics.add.collider(player, platforms);
+      // The Collider is the one that performs the magic.
+      // It takes two objects and tests for collision and performs separation against them.
+      // In this case we're giving it the player sprite and the platforms Group.
+      // It's clever enough to run collision against all Group members,
+      // so this one call will collide against the ground and all platforms. 
+      // Without the collider, the player falls through the platforms 
+
+      this.anims.create({
+        key: 'right',
+        frames: this.anims.generateFrameNumbers('dude', {start: 5, end: 8}), // start end end refer to spritesheet positions
+        frameRate: 10,
+        repeat: -1 // tells the anim to loop
+      });
+
+      this.anims.create({
+        key: 'turn',
+        frames: [ { key: 'dude', frame: 4 } ],
+        frameRate: 20
+      });
+
+      this.anims.create({
+        key: 'left',
+        frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+        frameRate: 10,
+        repeat: -1
+      });
+
+      cursors = this.input.keyboard.createCursorKeys();
+      // This populates the cursors object with four properties: 
+      // up, down, left, right, that are all instances of Key objects.
+      // Then all we need to do is poll these in our update loop: 
+    }
+
+    function update ()
+    {
+      if (cursors.left.isDown)
+      {
+        player.setVelocityX(-160);
+
+        player.anims.play('left', true);
+      }
+      else if (cursors.right.isDown)
+      {
+        player.setVelocityX(160);
+
+        player.anims.play('right', true);
+      }
+      else
+      {
+        player.setVelocityX(0);
+
+        player.anims.play('turn');
+      }
+      // jump
+      if (cursors.up.isDown && player.body.touching.down)
+      {
+        player.setVelocityY(-470);
+      }
+    }
+
+</script>
+
+</body>
+</html>
