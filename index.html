@@ -49,8 +49,15 @@
 
     function create ()
     {
+
+      let score = 0;
+      let scoreText;
+
       this.add.image(400, 300, 'sky'); // x,y,key. Objects are positioned from their center
 
+      scoreText = this.add.text(16, 16, 'score: 0', {fontSize: '32px', fill: '#000'})
+
+      // create ground
       platforms = this.physics.add.staticGroup(); // in order to use physics, they must be configured in the config obj
       // arcade physics has two types of bodies: dynamic and static. We're creating a static object.
 
@@ -62,7 +69,8 @@
       platforms.create(600, 400, 'ground');
       platforms.create(50, 250, 'ground');
       platforms.create(750, 220, 'ground');
-
+      
+      // create player
       player = this.physics.add.sprite(100, 450, 'dude');
 
       player.setBounce(0.2); // this object will bounce after jumping
@@ -103,6 +111,52 @@
       // This populates the cursors object with four properties: 
       // up, down, left, right, that are all instances of Key objects.
       // Then all we need to do is poll these in our update loop: 
+
+      // create stars
+      stars = this.physics.add.group({
+        key: 'star',
+        repeat: 11, // one child is created, so this line gives us 12
+        setXY: { x: 12, y: 0, stepX: 70 } // position and step for each
+      });
+
+      stars.children.iterate(function (child){ // iterates over each child in group
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8)); // gives a random bounce value in range
+      });
+
+      this.physics.add.collider(stars, platforms); // add collider
+      this.physics.add.overlap(player, stars, collectStar, null, this);
+      
+      function collectStar (player, star) {
+        star.disableBody(true, true);
+
+        score += 10;
+        scoreText.setText('Score: ' + score)
+
+        if (stars.countActive(true) === 0) { // count active stars
+          stars.children.iterate(function (child){
+            child.enableBody(true, child.x, 0, true, true); // reactivate stars
+          });
+
+          let x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400); // spawn bomb on opposite side of player
+
+          let bomb = bombs.create(x, 16, 'bomb'); // spawn bomb using x
+          bomb.setBounce(1);
+          bomb.setCollideWorldBounds(true);
+
+          bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        }
+      }
+
+      bombs = this.physics.add.group();
+      this.physics.add.collider(bombs, platforms);
+      this.physics.add.collider(player, bombs, hitBomb, null, this);
+
+      function hitBomb (player, bomb) {
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play('turn');
+        gameOver = true;
+      }
     }
 
     function update ()
